@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NM Tomographic File Size Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#f7f9fc; --card:#fff; --text:#1f2a44; --muted:#6b7a99; --border:#e4e9f2; }
+    * { box-sizing:border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; background:var(--bg); color:var(--text); }
+    .container { max-width:700px; margin:24px auto; padding:20px; background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,0.06); }
+    h1 { margin:0 0 10px; font-size:1.45rem; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:12px; }
+    .field { display:grid; gap:6px; }
+    label { font-weight:600; font-size:0.95rem; }
+    input[type="number"] { height:32px; padding:6px 10px; border:1px solid var(--border); border-radius:8px; font-size:0.95rem; }
+    .card { margin-top:14px; padding:14px; border-radius:10px; background:#eef4ff; border:1px solid #d7e3ff; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .foot { margin-top:8px; color:var(--muted); font-size:0.85rem; }
+    .btn-row { display:flex; gap:10px; flex-wrap:wrap; }
+    button { padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:#fff; cursor:pointer; }
+    button:hover { background:#f1f5ff; }
+	
+	/* Remove spinners from number inputs */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+  
+    input[type="number"] {
+        -moz-appearance: textfield; /* Firefox */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Tomographic NM File Size Calculator</h1>
+    <p class="foot">16-bit pixels; decimal megabytes (MB = 10<sup>6</sup> bytes).</p>
+    <div class="grid">
+      <div class="field">
+	    <label for="rows">Rows</label>
+	    <input type="number" id="rows" min="1" step="1" value="128" />
+	  </div>
+	  <div class="field">
+	    <label for="cols">Columns</label>
+	    <input type="number" id="cols" min="1" step="1" value="128" />
+	  </div>
+	  <div class="field">
+	    <label for="views">Views</label>
+	    <input type="number" id="views" min="1" step="1" value="120" />
+	  </div>
+	  <div class="field">
+	    <label for="windows">Energy windows</label>
+	    <input type="number" id="windows" min="1" step="1" value="3" />
+	  </div>
+    </div>
+    <div class="card">
+      <div id="mbOut">Size (MB): <span class="mono">0.000</span></div>
+      <div class="btn-row">
+        <button id="sendBtn">Use value</button>
+      </div>
+    </div>
+    <p class="foot">Estimates the pixel data size only. Does not include meta data.</p>
+  </div>
+  <script>
+    function toInt(v){ const n = parseInt(v,10); return Number.isFinite(n)?n:0; }
+    function fmt(n,d=3){ return n.toLocaleString(undefined,{minimumFractionDigits:d, maximumFractionDigits:d}); }
+	
+	function calc(){
+      const rows = toInt(document.getElementById('rows').value);
+      const cols = toInt(document.getElementById('cols').value);
+      const views = toInt(document.getElementById('views').value);
+	  const windows = toInt(document.getElementById('windows').value);
+      const pixels = rows * cols * views * windows;
+      const mb = pixels * (16 / (8 * 1e6));
+      document.getElementById('mbOut').innerHTML = `Size (MB): <span class="mono">${fmt(mb)}</span>`;
+      return mb;
+    }
+
+    // Read pref key from query string
+    const prefKey = new URLSearchParams(window.location.search).get('key') || 'pref_nmTomoAvg';
+	
+	// Recalculate when any input changes
+    [document.getElementById('rows'),
+      document.getElementById('cols'),
+      document.getElementById('views'),
+	  document.getElementById('windows')].forEach(el => {
+        el.addEventListener('input', calc);
+        el.addEventListener('change', calc);
+    });
+
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      const mb = calc().toFixed(3);
+      const payload = { type: 'setPref', key: prefKey, value: mb };
+
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(payload, '*');
+          try { window.opener.focus(); } catch {}
+        } else {
+          // Fallback saves to localStorage in case opener is missing
+          localStorage.setItem(prefKey, mb);
+        }
+      } catch (e) {
+        localStorage.setItem(prefKey, mb);
+      }
+
+      window.close(); // works when opened via window.open
+    });
+
+    calc(); // initial compute
+  </script>
+</body>
+</html>

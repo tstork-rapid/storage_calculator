@@ -59,6 +59,10 @@
       grid-template-columns: 1fr;
       gap: 6px;
     }
+	.prefs .grid {
+	  align-items: start;
+	}
+
     label { font-weight: 600; font-size: 0.95rem; }
 
     /* Smaller, uniform numeric inputs */
@@ -103,6 +107,14 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
     .footnote { margin-top: 10px; color: var(--muted); font-size: 0.82rem; }
+	
+	/* Help icon next to labels */
+    .help-link { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; width: 18px; height: 18px; border-radius: 50%; background: #eef4ff; color: #2e6ef7; font-weight: 700; font-size: 12px; text-decoration: none; border: 1px solid #d7e3ff; }
+    .help-link:hover { background: #e3edff; }
+
+    /* tiny toast */
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2a44; color: #fff; padding: 10px 12px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.2); font-size: .9rem; opacity: 0; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -156,16 +168,22 @@
       <div class="section-title">Preferences:</div>
       <div class="grid">
         <div class="field">
-          <label for="ctAvg">Average CT file size (MB)<br></br></label>
-          <input type="number" id="ctAvg" min="0" step="0.01" placeholder="e.g., 200" value="200" />
+          <label for="ctAvg">Average full FOV CT file size (MB)
+			<button type="button" class="help-link" aria-label="Open CT file size calculator" onclick="openCalc('pref_ctAvg','ct-calculator.html')">?</button>
+		  </label>
+          <input type="number" id="ctAvg" min="0" step="0.01" placeholder="e.g., 200" value="104.858" />
         </div>
         <div class="field">
-          <label for="nmReconAvg">Average reconstructed NM file size (MB)</label>
-          <input type="number" id="nmReconAvg" min="0" step="0.01" placeholder="e.g., 10" value="10" />
+          <label for="nmReconAvg">Average reconstructed NM file size (MB)
+			<button type="button" class="help-link" aria-label="Open NM recon file size calculator" onclick="openCalc('pref_nmReconAvg','nm-recon-calculator.html')">?</button>
+		  </label>
+          <input type="number" id="nmReconAvg" min="0" step="0.01" placeholder="e.g., 10" value="4.194" />
         </div>
         <div class="field">
-          <label for="nmTomoAvg">Average tomographic NM file size (MB)</label>
-          <input type="number" id="nmTomoAvg" min="0" step="0.01" placeholder="e.g., 15" value="15" />
+          <label for="nmTomoAvg">Average tomographic NM file size (MB)
+			<button type="button" class="help-link" aria-label="Open NM tomo file size calculator" onclick="openCalc('pref_nmTomoAvg','nm-tomo-calculator.html')">?</button>
+		  </label>
+          <input type="number" id="nmTomoAvg" min="0" step="0.01" placeholder="e.g., 15" value="11.796" />
         </div>
 		<div class="field">
 			<label for="safetyFac">Safety factor</label>
@@ -184,6 +202,9 @@
       Storage uses binary units (1&nbsp;GB = 1024&nbsp;MB).
     </div>
   </div>
+  
+  <!-- toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
     // Elements
@@ -204,6 +225,15 @@
 
     const prefsToggleEl = document.getElementById('prefsToggle');
     const prefsPanelEl = document.getElementById('prefsPanel');
+	
+	const toastEl = document.getElementById('toast');
+	
+	const PREF_KEYS = {
+		ct: 'pref_ctAvg',
+		recon: 'pref_nmReconAvg',
+		tomo: 'pref_nmTomoAvg',
+		safety: 'pref_safetyFac'
+	};
 
     // Helpers
     function toIntOrOne(value) {
@@ -216,6 +246,41 @@
     }
     function fmt(n, decimals = 3) {
       return n.toLocaleString(undefined, { maximumFractionDigits: decimals, minimumFractionDigits: decimals });
+    }
+	function showToast(msg) {
+      toastEl.textContent = msg; toastEl.classList.add('show');
+      setTimeout(()=> toastEl.classList.remove('show'), 1600);
+	}
+	function syncSpectUI() { 
+	  if (spectEl.checked) { 
+	    fovSectionEl.classList.remove('hidden'); 
+	  } else { 
+	    fovSectionEl.classList.add('hidden'); fovsEl.value = ''; 
+	  }
+	}
+    // Open calculators so they have an opener (index.html).
+	// Using a named window keeps reusing the same tab if available.
+	function openCalc(prefKey, url) {
+	  // Pass the prefKey via URL so the calculator knows which key to set.
+      const w = window.open(url + '?key=' + encodeURIComponent(prefKey), 'calcWindow');
+      // Some browsers may ignore focus immediately; a small delay can help in practice.
+      if (w) w.focus();
+	}
+	function loadPrefsFromStorage() {
+      const ct = localStorage.getItem(PREF_KEYS.ct);
+      const recon = localStorage.getItem(PREF_KEYS.recon);
+      const tomo = localStorage.getItem(PREF_KEYS.tomo);
+      const saf = localStorage.getItem(PREF_KEYS.safety);
+      if (ct !== null) ctAvgEl.value = ct;
+      if (recon !== null) nmReconAvgEl.value = recon;
+      if (tomo !== null) nmTomoAvgEl.value = tomo;
+      if (saf !== null) safetyFacEl.value = saf;
+    }
+    function savePrefsToStorage() {
+      localStorage.setItem(PREF_KEYS.ct, ctAvgEl.value || '');
+      localStorage.setItem(PREF_KEYS.recon, nmReconAvgEl.value || '');
+      localStorage.setItem(PREF_KEYS.tomo, nmTomoAvgEl.value || '');
+      localStorage.setItem(PREF_KEYS.safety, safetyFacEl.value || '');
     }
 
     // Calculation logic
@@ -246,16 +311,34 @@
       tpResultEl.innerHTML = `Total timepoints: <span class="mono">${totalTP.toLocaleString()}</span>`;
       gbTotalEl.innerHTML = `Total storage (GB): <span class="mono">${fmt(totalGB, 3)}</span>`;
     }
+	
+	
+  // Receive values via postMessage from calculators
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if(!data || data.type!=='setPref') return;
+    if(data.key==='pref_ctAvg'){ ctAvgEl.value = data.value; }
+    else if(data.key==='pref_nmReconAvg'){ nmReconAvgEl.value = data.value; }
+    else if(data.key==='pref_nmTomoAvg'){ nmTomoAvgEl.value = data.value; }
+    else if(data.key==='pref_safetyFac'){ safetyFacEl.value = data.value; }
+    // Persist & recalc
+    localStorage.setItem(data.key, data.value);
+    calculate();
+  });
 
-    spectEl.addEventListener('change', () => {
-      if (spectEl.checked) {
-        fovSectionEl.classList.remove('hidden');
-      } else {
-        fovSectionEl.classList.add('hidden');
-        fovsEl.value = '';
-      }
-      calculate();
+	// Listen for calculator updates via localStorage (cross-tab)
+    window.addEventListener('storage', (e) => {
+      if (!e) return;
+      if (e.key === PREF_KEYS.ct) { ctAvgEl.value = e.newValue || ctAvgEl.value; showToast(`Updated CT MB: ${e.newValue}`); calculate(); }
+      else if (e.key === PREF_KEYS.recon) { nmReconAvgEl.value = e.newValue || nmReconAvgEl.value; showToast(`Updated NM recon MB: ${e.newValue}`); calculate(); }
+      else if (e.key === PREF_KEYS.tomo) { nmTomoAvgEl.value = e.newValue || nmTomoAvgEl.value; showToast(`Updated NM tomo MB: ${e.newValue}`); calculate(); }
+      else if (e.key === PREF_KEYS.safety) { safetyFacEl.value = e.newValue || safetyFacEl.value; showToast(`Updated safety factor: ${e.newValue}`); calculate(); }
     });
+
+    spectEl.addEventListener('change', () => { syncSpectUI(); calculate(); });
+
+    document.addEventListener('DOMContentLoaded', () => { loadPrefsFromStorage(); syncSpectUI(); calculate(); });
+    window.addEventListener('pageshow', () => { syncSpectUI(); calculate(); });
 
     prefsToggleEl.addEventListener('click', () => {
       const isHidden = prefsPanelEl.classList.contains('hidden');
@@ -263,7 +346,14 @@
       prefsPanelEl.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
     });
 
-    [patientsEl, cyclesEl, timepointsEl, fovsEl, ctAvgEl, nmReconAvgEl, nmTomoAvgEl, safetyFacEl].forEach(el => {
+    // Save preferences on change
+    [ctAvgEl, nmReconAvgEl, nmTomoAvgEl, safetyFacEl].forEach(el => {
+      el.addEventListener('input', () => { savePrefsToStorage(); calculate(); });
+      el.addEventListener('change', () => { savePrefsToStorage(); calculate(); });
+    });
+
+    // Recalculate on count inputs
+    [patientsEl, cyclesEl, timepointsEl, fovsEl].forEach(el => {
       el.addEventListener('input', calculate);
       el.addEventListener('change', calculate);
     });
