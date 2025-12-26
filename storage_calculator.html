@@ -1,0 +1,274 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Storage Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --card: #ffffff;
+      --text: #1f2a44;
+      --muted: #6b7a99;
+      --accent: #2e6ef7;
+      --border: #e4e9f2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container {
+      max-width: 860px;
+      margin: 24px auto;
+      padding: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    h1 { margin: 0; font-size: 1.45rem; }
+    .gear-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--card);
+      cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+    }
+    .gear-btn:hover { background: #f1f5ff; box-shadow: 0 3px 12px rgba(46,110,247,0.15); }
+    .gear-icon { width: 20px; height: 20px; fill: var(--text); }
+    .sub { margin: 0 0 16px; color: var(--muted); font-size: 0.92rem; }
+
+    /* Tighter grid so controls don't overlap */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .field {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    label { font-weight: 600; font-size: 0.95rem; }
+
+    /* Smaller, uniform numeric inputs */
+    input[type="number"] {
+      height: 32px;                /* smaller control */
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      width: 100%;
+      line-height: 1;
+      background: #fff;
+    }
+    /* Prevent spinner overlap (WebKit browsers) */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] { -moz-appearance: textfield; } /* Firefox: remove spinners */
+
+    .checkbox-row { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; }
+    .hint { color: var(--muted); font-size: 0.85rem; line-height: 1.2; }
+    .hidden { display: none; }
+
+    .card {
+      padding: 14px;
+      border-radius: 10px;
+      background: #eef4ff;
+      border: 1px solid #d7e3ff;
+    }
+    .prefs {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fbfcff;
+      border: 1px dashed var(--border);
+    }
+    .section-title { margin: 0 0 8px; font-weight: 700; font-size: 1rem; }
+    .result { margin-top: 8px; font-weight: 700; font-size: 1rem; }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .footnote { margin-top: 10px; color: var(--muted); font-size: 0.82rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Storage Calculator</h1>
+      <button id="prefsToggle" class="gear-btn" aria-label="Edit preferences" title="Edit preferences">
+        <svg class="gear-icon" viewBox="0 0 16 16" aria-hidden="true">
+		  <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/>
+          <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/>
+        </svg>
+      </button>
+    </header>
+
+    <p class="sub">Enter study information below.</p>
+
+    <!-- Timepoint Info -->
+    <div class="grid">
+      <div class="field">
+        <label for="patients">Number of patients</label>
+        <input type="number" id="patients" min="1" step="1" placeholder="e.g., 10" />
+      </div>
+      <div class="field">
+        <label for="cycles">Number of cycles/patient</label>
+        <input type="number" id="cycles" min="1" step="1" placeholder="e.g., 2" />
+      </div>
+      <div class="field">
+        <label for="timepoints">Number of timepoints/cycle</label>
+        <input type="number" id="timepoints" min="1" step="1" placeholder="e.g., 4" />
+      </div>
+    </div>
+
+    <!-- SPECT toggle + FOVs -->
+    <div class="field">
+      <div class="checkbox-row">
+        <input type="checkbox" id="spect" />
+        <label for="spect" style="font-weight:500;">Tomographic SPECT?</label>
+      </div>
+      <p class="hint">When checked, specify the number of fields of view (FOVs) per timepoint.</p>
+    </div>
+
+    <div id="fovSection" class="grid hidden">
+      <div class="field">
+        <label for="fovs">Number of FOVs/timepoint</label>
+        <input type="number" id="fovs" min="1" step="1" placeholder="e.g., 2" />
+      </div>
+    </div>
+
+    <!-- Preferences (hidden by default, opened via gear icon) -->
+    <div id="prefsPanel" class="prefs hidden" aria-hidden="true">
+      <div class="section-title">Preferences:</div>
+      <div class="grid">
+        <div class="field">
+          <label for="ctAvg">Average CT file size (MB)<br></br></label>
+          <input type="number" id="ctAvg" min="0" step="0.01" placeholder="e.g., 200" value="200" />
+        </div>
+        <div class="field">
+          <label for="nmReconAvg">Average reconstructed NM file size (MB)</label>
+          <input type="number" id="nmReconAvg" min="0" step="0.01" placeholder="e.g., 10" value="10" />
+        </div>
+        <div class="field">
+          <label for="nmTomoAvg">Average tomographic NM file size (MB)</label>
+          <input type="number" id="nmTomoAvg" min="0" step="0.01" placeholder="e.g., 15" value="15" />
+        </div>
+		<div class="field">
+			<label for="safetyFac">Safety factor</label>
+			<input type="number" id="safetyFac" min="0" step="0.1" placeholder="e.g., 1.5" value="1.5" />
+		</div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+      <div id="tpResult" class="result">Total timepoints: <span class="mono">0</span></div>
+      <div id="gbTotal" class="result">Total storage (GB): <span class="mono">0.000</span></div>
+    </div>
+
+    <div class="footnote">
+      Storage uses binary units (1&nbsp;GB = 1024&nbsp;MB).
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const patientsEl = document.getElementById('patients');
+    const cyclesEl = document.getElementById('cycles');
+    const timepointsEl = document.getElementById('timepoints');
+    const spectEl = document.getElementById('spect');
+    const fovSectionEl = document.getElementById('fovSection');
+    const fovsEl = document.getElementById('fovs');
+
+    const ctAvgEl = document.getElementById('ctAvg');
+    const nmReconAvgEl = document.getElementById('nmReconAvg');
+    const nmTomoAvgEl = document.getElementById('nmTomoAvg');
+	const safetyFacEl = document.getElementById('safetyFac');
+
+    const tpResultEl = document.getElementById('tpResult');
+    const gbTotalEl = document.getElementById('gbTotal');
+
+    const prefsToggleEl = document.getElementById('prefsToggle');
+    const prefsPanelEl = document.getElementById('prefsPanel');
+
+    // Helpers
+    function toIntOrOne(value) {
+      const n = parseInt(value, 10);
+      return Number.isFinite(n) ? n : 1;
+    }
+    function toFloatOrDefault(value, def) {
+      const n = parseFloat(value);
+      return Number.isFinite(n) ? n : def;
+    }
+    function fmt(n, decimals = 3) {
+      return n.toLocaleString(undefined, { maximumFractionDigits: decimals, minimumFractionDigits: decimals });
+    }
+
+    // Calculation logic
+    function calculate() {
+      const patients = toIntOrOne(patientsEl.value);
+      const cycles = toIntOrOne(cyclesEl.value);
+      const timepoints = toIntOrOne(timepointsEl.value);
+
+      const isSpect = spectEl.checked;
+      const fovs = toIntOrOne(fovsEl.value);
+
+      const totalTP = patients * cycles * timepoints;
+
+      const ctAvgMB = toFloatOrDefault(ctAvgEl.value, 200);
+      const nmReconAvgMB = toFloatOrDefault(nmReconAvgEl.value, 10);
+      const nmTomoAvgMB = toFloatOrDefault(nmTomoAvgEl.value, 15);
+	  
+	  const rawSafety = toFloatOrDefault(safetyFacEl.value, 1.5);
+	  const safetyFac = Math.max(1, rawSafety);
+
+      const perTP_MB = ctAvgMB + nmReconAvgMB;
+
+      const totalMB = isSpect
+        ? (((totalTP * perTP_MB) + (totalTP * fovs * nmTomoAvgMB)) * safetyFac)
+        : (totalTP * perTP_MB * safetyFac);
+      const totalGB = totalMB / 1024;
+
+      tpResultEl.innerHTML = `Total timepoints: <span class="mono">${totalTP.toLocaleString()}</span>`;
+      gbTotalEl.innerHTML = `Total storage (GB): <span class="mono">${fmt(totalGB, 3)}</span>`;
+    }
+
+    spectEl.addEventListener('change', () => {
+      if (spectEl.checked) {
+        fovSectionEl.classList.remove('hidden');
+      } else {
+        fovSectionEl.classList.add('hidden');
+        fovsEl.value = '';
+      }
+      calculate();
+    });
+
+    prefsToggleEl.addEventListener('click', () => {
+      const isHidden = prefsPanelEl.classList.contains('hidden');
+      prefsPanelEl.classList.toggle('hidden', !isHidden);
+      prefsPanelEl.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+    });
+
+    [patientsEl, cyclesEl, timepointsEl, fovsEl, ctAvgEl, nmReconAvgEl, nmTomoAvgEl, safetyFacEl].forEach(el => {
+      el.addEventListener('input', calculate);
+      el.addEventListener('change', calculate);
+    });
+
+    calculate();
+  </script>
+</body>
+</html>
