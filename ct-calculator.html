@@ -37,7 +37,7 @@
 <body>
   <div class="container">
     <h1>CT File Size Calculator</h1>
-    <p class="foot">16-bit pixels; decimal megabytes (MB = 10<sup>6</sup> bytes).</p>
+    <p class="foot">16-bit pixels; decimal megabytes (MB = 2<sup>20</sup> bytes).</p>
     <div class="grid">
       <div class="field">
 	    <label for="rows">Rows</label>
@@ -69,7 +69,7 @@
       const cols = toInt(document.getElementById('cols').value);
       const slices = toInt(document.getElementById('slices').value);
       const pixels = rows * cols * slices;
-      const mb = pixels * (16 / (8 * 1e6));
+      const mb = pixels * (16 / (8 * 2 ** 20));
       document.getElementById('mbOut').innerHTML = `Size (MB): <span class="mono">${fmt(mb)}</span>`;
       return mb;
     }
