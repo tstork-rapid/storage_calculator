@@ -300,11 +300,19 @@
 	  
 	  const rawSafety = toFloatOrDefault(safetyFacEl.value, 1.5);
 	  const safetyFac = Math.max(1, rawSafety);
-
-      const perTP_MB = ctAvgMB + nmReconAvgMB;
+	  
+	  // Double the nmReconAvgMB to account for generated attenuation map of same dimensions if isSpect
+      const perTP_MB = isSpect 
+	    ? (ctAvgMB + (2 * nmReconAvgMB)) 
+		: (ctAvgMB + nmReconAvgMB);
+		
+	  // Compute the size of the stitched tomographic projections if FOVs > 1, assumes no overlap
+	  const stitchedTomoAvgMB = (isSpect && fovs > 1)
+	    ? (nmTomoAvgMB * fovs)
+		: 0;
 
       const totalMB = isSpect
-        ? (((totalTP * perTP_MB) + (totalTP * fovs * nmTomoAvgMB)) * safetyFac)
+        ? (((totalTP * perTP_MB) + (totalTP * ((fovs * nmTomoAvgMB) + stitchedTomoAvgMB))) * safetyFac)
         : (totalTP * perTP_MB * safetyFac);
       const totalGB = totalMB / 1024;
 
